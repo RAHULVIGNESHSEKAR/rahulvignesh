@@ -1,0 +1,68 @@
+//Include the below library for accessing RC522 RFID scanner library 
+#include <MFRC522.h>
+ 
+#define SS_PIN A5
+#define RST_PIN D2
+ 
+MFRC522 mfrc522(SS_PIN, RST_PIN);	// Create MFRC522 instance.
+
+long lastPublishedAt = 0;
+int publishAfter = 10000;
+ 
+int Greenblink = D3; //Initialize Green LED to D3 for light signal confirmation after cup is being bought  
+int Greenbuzz = D4; //Initialize Piezo to D4 for sound signal confirmation after cup is being bought 
+ 
+void setup() 
+{   
+    pinMode(Greenblink, OUTPUT); // Set up the LED for output
+    pinMode(Greenbuzz, OUTPUT); //setup the flexPin for input too
+	// Initialize serial communications with the computer
+	Serial.begin(9600);	
+	mfrc522.setSPIConfig(); // sets up SPI config
+ 
+	mfrc522.PCD_Init();	// Initialize RC522 card
+	Serial.println("Start Scanning");
+	Particle.publish( "Ready to scan" );
+}
+ 
+void loop() 
+{
+	// Look for new cards
+	if ( ! mfrc522.PICC_IsNewCardPresent()) {
+		return;
+	}
+	Serial.println("New card Detected");
+	// Read tapped card data
+	if ( ! mfrc522.PICC_ReadCardSerial()) {
+		return;
+	}
+	//Dump all card data to Serial
+	mfrc522.PICC_DumpToSerial(&(mfrc522.uid));
+	publishevent(); //open Termianl to view the Unique ID of the RFID tags  
+	//Particle.publish( "Tag ID", str(mfrc522.uid) );
+}
+ 
+void publishevent()
+{
+     if( lastPublishedAt + publishAfter < millis() )
+     {
+
+      Particle.publish( "Greencupread/apapercup/saved/" );
+      cupbought();
+      delay(3000);
+      lastPublishedAt = millis();
+      }
+
+}
+void cupbought()
+{
+    //LED blink to indicate that the cup is scanned before buying   
+    digitalWrite(Greenblink, HIGH);
+    //A short auditory confirmation to compliment the visual indication that the cup is bought 
+    digitalWrite(Greenbuzz, HIGH);
+    delay(2000);
+    digitalWrite(Greenbuzz, LOW);
+    //This circuit takes 3 seconds to complete 
+    delay(1000);
+    digitalWrite(Greenblink, LOW);
+}
