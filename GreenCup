@@ -7,7 +7,7 @@
 MFRC522 mfrc522(SS_PIN, RST_PIN);	// Create MFRC522 instance.
 
 long lastPublishedAt = 0;
-int publishAfter = 10000;
+int publishAfter = 2000;
  
 int Greenblink = D3; //Initialize Green LED to D3 for light signal confirmation after cup is being bought  
 int Greenbuzz = D4; //Initialize Piezo to D4 for sound signal confirmation after cup is being bought 
