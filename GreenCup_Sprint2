@@ -1,16 +1,34 @@
-//Source : https://github.com/pkourany/MFRC522_RFID_Library
+//Code_and_project_Brief 
 
-// Make connections as per "RFID CIrcuit Diag" Fritzing Diagram
+//The below code is written to scan for a Customer card and scan a cup. 
+//After scanning both the customer card and the cup, the code is written to automatically tag both the IDs by a comment.
+//The Cup ID, Customer ID are all published in the particle cloud. 
 
-// This #include statement was automatically added by the Particle IDE.
+//The LED should blink Green for Cups registered in the database. The database is code here.  
+//The LED should blink Yellow for registered customers   
+//For any other RFID tags or cups not registered, the LED will notify with Red light.  
+
+//Source of base code for RFID scanning: https://github.com/pkourany/MFRC522_RFID_Library
+ 
+//Date: Feb 10, 2020 by Rahul vignesh Sekar 
+
+//The below header file should be included from the particle library.
+//This is mandatory while working with RC522 RFID reader  
 #include <MFRC522.h> 
 
-#define SS_PIN SS
+//SS pin acts as Signal input when SPI interface is enabled, 
+//acts as serial data when I2C interface is enabled and acts as serial data input when UART interface is enabled.   
+#define SS_PIN SS 
+
+//is an input for Reset and power-down. When this pin goes low, hard power-down is enabled. 
+//This turns off all internal current sinks including the oscillator and the input pins are disconnected from the outside world.
+//On the rising edge, the module is reset.
 #define RST_PIN D2
+
 int Greenblink = D3; //Initialize Green LED to D3 for 'Cup Ok' feeback while buying 
 int NOTGreenblink = D6; //Initialize Red LED to D6 for 'Cup NOT ok' feeback   
 int Notifyblink = D5; //Initialize Red LED to D5 for 'Notifying Customer' for feeback
-String blank = "Cup tagged with the user";
+String Notify = "Cup tagged with the user";
 
 MFRC522 mfrc522(SS_PIN, RST_PIN);	// Create MFRC522 instance.
 
@@ -62,8 +80,11 @@ void loop() {
 	String event = "iotecosystems.2018.techdemo.rfid";
 	//Particle.publish( "iotecosystems.2018.techdemo.rfid", UID_string ); 
 	//This cupdatabase function recognizes only the Green cups
-	SignalCustomer();
+	//First scan for registered customers. Notify with yellow LED if they are registered customer  
+	SignalCustomer(); 
+	//Next, scan for Green cups. Notify with Green LED if the cups are registered   
 	Cupdatabase();
+	//Notify with RED LED if the cups are not registered. 
 	CupNotOk();
 
 	delay( 1000 );
@@ -92,7 +113,6 @@ void SignalCustomer()
     delay(2000);
     Particle.publish( "iotecosystems.2018.techdemo.rfid", UID_string );
     digitalWrite(Notifyblink, LOW); 
-    //Cupdatabase();
 	}
 	else if(UID_string == "392937030")  
 	{
@@ -102,7 +122,6 @@ void SignalCustomer()
     delay(2000);
     Particle.publish( "iotecosystems.2018.techdemo.rfid", UID_string );
     digitalWrite(Notifyblink, LOW); 
-    //Cupdatabase();
 	}
 }
 
@@ -134,7 +153,7 @@ void Cupdatabase()
     digitalWrite(Greenblink, HIGH);
     //This circuit takes 2 seconds to complete 
     delay(2000);
-    Particle.publish( "iotecosystems.2018.techdemo.rfid", blank ); 
+    Particle.publish( "iotecosystems.2018.techdemo.rfid", Notify ); 
     digitalWrite(Greenblink, LOW); 
 	}
 	else if(UID_string == "3471464377")  
@@ -143,7 +162,7 @@ void Cupdatabase()
     digitalWrite(Greenblink, HIGH);
     //This circuit takes 2 seconds to complete 
     delay(2000);
-    Particle.publish( "iotecosystems.2018.techdemo.rfid", blank );
+    Particle.publish( "iotecosystems.2018.techdemo.rfid", Notify );
     digitalWrite(Greenblink, LOW); 
 	}
 	else if(UID_string == "2935117753")  
@@ -152,7 +171,7 @@ void Cupdatabase()
     digitalWrite(Greenblink, HIGH);
     //This circuit takes 2 seconds to complete 
     delay(2000);
-    Particle.publish( "iotecosystems.2018.techdemo.rfid", blank );
+    Particle.publish( "iotecosystems.2018.techdemo.rfid", Notify );
     digitalWrite(Greenblink, LOW); 
 	}
 }
@@ -174,7 +193,7 @@ void CupNotOk()
  
    if(UID_string == "2934069177")
    {
-   millis();   
+   millis();   //calling millis function as a dummy here
    }
    else if(UID_string == "2935117753")
    {
@@ -194,7 +213,7 @@ void CupNotOk()
    }
    else
    {
-   digitalWrite(NOTGreenblink, HIGH);
+   digitalWrite(NOTGreenblink, HIGH); //The Red LED blinks now 
    //This circuit takes 2 seconds to complete 
    delay(2000);
    digitalWrite(NOTGreenblink, LOW);
