@@ -1,0 +1,203 @@
+//Source : https://github.com/pkourany/MFRC522_RFID_Library
+
+// Make connections as per "RFID CIrcuit Diag" Fritzing Diagram
+
+// This #include statement was automatically added by the Particle IDE.
+#include <MFRC522.h> 
+
+#define SS_PIN SS
+#define RST_PIN D2
+int Greenblink = D3; //Initialize Green LED to D3 for 'Cup Ok' feeback while buying 
+int NOTGreenblink = D6; //Initialize Red LED to D6 for 'Cup NOT ok' feeback   
+int Notifyblink = D5; //Initialize Red LED to D5 for 'Notifying Customer' for feeback
+String blank = "Cup tagged with the user";
+
+MFRC522 mfrc522(SS_PIN, RST_PIN);	// Create MFRC522 instance.
+
+void setup() {
+	Serial.begin(9600);	// Initialize serial communications with the PC
+	mfrc522.setSPIConfig(); // sets up SPI config
+	pinMode(Greenblink, OUTPUT); // Set up the Green LED for 'Cup Ok' feedback  
+	pinMode(NOTGreenblink, OUTPUT); // Set up the RED LED for 'Cup NOT Ok' feedback
+	pinMode(Notifyblink, OUTPUT); // Set up the Yellow LED for 'Customer Ok' feedback
+
+	mfrc522.PCD_Init();	// Initialize RC522 card
+	Serial.println("Start Scanning");
+}
+
+
+void loop() {
+	// Look for new cards
+	if ( ! mfrc522.PICC_IsNewCardPresent()) {
+		return;
+	}
+	Serial.println("New card Detected");
+	// Read tapped card data
+	if ( ! mfrc522.PICC_ReadCardSerial()) {
+		return;
+	}
+
+	//Dump all card data to Serial
+	mfrc522.PICC_DumpToSerial(&(mfrc522.uid));
+
+	unsigned long UID_unsigned;
+    UID_unsigned =  mfrc522.uid.uidByte[0] << 24;
+    UID_unsigned += mfrc522.uid.uidByte[1] << 16;
+    UID_unsigned += mfrc522.uid.uidByte[2] <<  8;
+    UID_unsigned += mfrc522.uid.uidByte[3];
+
+    Serial.println();
+    Serial.println("UID Unsigned int");
+    Serial.println(UID_unsigned);
+
+    String UID_string =  (String)UID_unsigned;
+    long UID_LONG=(long)UID_unsigned;
+
+    Serial.println("UID Long :");
+    Serial.println(UID_LONG);
+
+    Serial.println("UID String :");
+    Serial.println(UID_string);
+
+	String event = "iotecosystems.2018.techdemo.rfid";
+	//Particle.publish( "iotecosystems.2018.techdemo.rfid", UID_string ); 
+	//This cupdatabase function recognizes only the Green cups
+	SignalCustomer();
+	Cupdatabase();
+	CupNotOk();
+
+	delay( 1000 );
+}
+
+void SignalCustomer()
+{
+    unsigned long UID_unsigned;
+    UID_unsigned =  mfrc522.uid.uidByte[0] << 24;
+    UID_unsigned += mfrc522.uid.uidByte[1] << 16;
+    UID_unsigned += mfrc522.uid.uidByte[2] <<  8;
+    UID_unsigned += mfrc522.uid.uidByte[3]; 
+
+
+    String UID_string =  (String)UID_unsigned;
+    long UID_LONG=(long)UID_unsigned;
+    
+    Serial.println("UID String :");
+    Serial.println(UID_string);
+
+    if(UID_string == "3652313131")
+	{
+	//LED blink to indicate that the customer has an active subscription with the coffee shop    
+    digitalWrite(Notifyblink, HIGH);
+    //This circuit takes 2 seconds to complete 
+    delay(2000);
+    Particle.publish( "iotecosystems.2018.techdemo.rfid", UID_string );
+    digitalWrite(Notifyblink, LOW); 
+    //Cupdatabase();
+	}
+	else if(UID_string == "392937030")  
+	{
+	//LED blink to indicate that the customer has an active subscription with the coffee shop   
+    digitalWrite(Notifyblink, HIGH);
+    //This circuit takes 2 seconds to complete 
+    delay(2000);
+    Particle.publish( "iotecosystems.2018.techdemo.rfid", UID_string );
+    digitalWrite(Notifyblink, LOW); 
+    //Cupdatabase();
+	}
+}
+
+
+void Cupdatabase()
+{ 
+    unsigned long UID_unsigned;
+    UID_unsigned =  mfrc522.uid.uidByte[0] << 24;
+    UID_unsigned += mfrc522.uid.uidByte[1] << 16;
+    UID_unsigned += mfrc522.uid.uidByte[2] <<  8;
+    UID_unsigned += mfrc522.uid.uidByte[3]; 
+
+   // Serial.println();
+   // Serial.println("UID Unsigned int");
+   // Serial.println(UID_unsigned);
+    
+    String UID_string =  (String)UID_unsigned;
+    long UID_LONG=(long)UID_unsigned;
+    
+    //Serial.println("UID Long :");
+    //Serial.println(UID_LONG);
+    
+    Serial.println("UID String :");
+    Serial.println(UID_string);
+
+    if(UID_string == "2934069177")
+	{
+	//LED blink to indicate that the cup is scanned before buying   
+    digitalWrite(Greenblink, HIGH);
+    //This circuit takes 2 seconds to complete 
+    delay(2000);
+    Particle.publish( "iotecosystems.2018.techdemo.rfid", blank ); 
+    digitalWrite(Greenblink, LOW); 
+	}
+	else if(UID_string == "3471464377")  
+	{
+	//LED blink to indicate that the cup is scanned before buying   
+    digitalWrite(Greenblink, HIGH);
+    //This circuit takes 2 seconds to complete 
+    delay(2000);
+    Particle.publish( "iotecosystems.2018.techdemo.rfid", blank );
+    digitalWrite(Greenblink, LOW); 
+	}
+	else if(UID_string == "2935117753")  
+	{
+	//LED blink to indicate that the cup is scanned before buying   
+    digitalWrite(Greenblink, HIGH);
+    //This circuit takes 2 seconds to complete 
+    delay(2000);
+    Particle.publish( "iotecosystems.2018.techdemo.rfid", blank );
+    digitalWrite(Greenblink, LOW); 
+	}
+}
+
+void CupNotOk()
+{  
+  unsigned long UID_unsigned;
+   UID_unsigned =  mfrc522.uid.uidByte[0] << 24;
+   UID_unsigned += mfrc522.uid.uidByte[1] << 16;
+   UID_unsigned += mfrc522.uid.uidByte[2] <<  8;
+   UID_unsigned += mfrc522.uid.uidByte[3]; 
+
+
+   String UID_string =  (String)UID_unsigned;
+   long UID_LONG=(long)UID_unsigned;
+    
+   Serial.println("UID String :");
+   Serial.println(UID_string);
+ 
+   if(UID_string == "2934069177")
+   {
+   millis();   
+   }
+   else if(UID_string == "2935117753")
+   {
+   millis();   
+   }
+   else if(UID_string == "3471464377")
+   {
+   millis();   
+   }
+   else if(UID_string == "3652313131")
+   {
+   millis();   
+   }
+   else if(UID_string == "392937030")
+   {
+   millis();   
+   }
+   else
+   {
+   digitalWrite(NOTGreenblink, HIGH);
+   //This circuit takes 2 seconds to complete 
+   delay(2000);
+   digitalWrite(NOTGreenblink, LOW);
+   }
+}
+
