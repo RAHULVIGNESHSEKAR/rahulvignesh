@@ -1,0 +1,471 @@
+#Part 1 (RC522 circuit code)
+
+//Code_and_project_Brief 
+
+//The below code is written to scan for a Customer card and scan a cup. 
+//After scanning both the customer card and the cup, the code is written to automatically tag both the IDs by a comment.
+//The Cup ID, Customer ID are all published in the particle cloud. 
+
+//The LED should blink Green for Cups registered in the database. The database is code here.  
+//The LED should blink Yellow for registered customers   
+//For any other RFID tags or cups not registered, the LED will notify with Red light.  
+
+//Source of base code for RFID scanning: https://github.com/pkourany/MFRC522_RFID_Library
+ 
+//Date: Feb 10, 2020 by Rahul vignesh Sekar 
+
+//The below header file should be included from the particle library.
+//This is mandatory while working with RC522 RFID reader  
+//#include <MFRC522.h> 
+
+//SS pin acts as Signal input when SPI interface is enabled, 
+//acts as serial data when I2C interface is enabled and acts as serial data input when UART interface is enabled.   
+#define SS_PIN SS 
+
+//is an input for Reset and power-down. When this pin goes low, hard power-down is enabled. 
+//This turns off all internal current sinks including the oscillator and the input pins are disconnected from the outside world.
+//On the rising edge, the module is reset.
+#define RST_PIN D2
+
+int Greenblink = D3; //Initialize Green LED to D3 for 'Cup Ok' feeback while buying 
+int NOTGreenblink = D6; //Initialize Red LED to D6 for 'Cup NOT ok' feeback   
+int Notifyblink = D5; //Initialize Yellow LED to D5 for 'Notifying Customer' for feeback
+String Notify = "Cup tagged with the user";
+
+MFRC522 mfrc522(SS_PIN, RST_PIN);	// Create MFRC522 instance.
+
+
+void setup() {
+	Serial.begin(9600);	// Initialize serial communications with the PC
+	mfrc522.setSPIConfig(); // sets up SPI config
+	pinMode(Greenblink, OUTPUT); // Set up the Green LED for 'Cup Ok' feedback  
+	pinMode(NOTGreenblink, OUTPUT); // Set up the RED LED for 'Cup NOT Ok' feedback
+	pinMode(Notifyblink, OUTPUT); // Set up the Yellow LED for 'Customer Ok' feedback
+
+	mfrc522.PCD_Init();	// Initialize RC522 card
+	Serial.println("Start Scanning");
+}
+
+
+void loop() {
+	// Look for new cards
+	if ( ! mfrc522.PICC_IsNewCardPresent()) {
+		return;
+	}
+	Serial.println("New card Detected");
+	// Read tapped card data
+	if ( ! mfrc522.PICC_ReadCardSerial()) {
+		return;
+	}
+
+	//Dump all card data to Serial
+	mfrc522.PICC_DumpToSerial(&(mfrc522.uid));
+
+	unsigned long UID_unsigned;
+    UID_unsigned =  mfrc522.uid.uidByte[0] << 24;
+    UID_unsigned += mfrc522.uid.uidByte[1] << 16;
+    UID_unsigned += mfrc522.uid.uidByte[2] <<  8;
+    UID_unsigned += mfrc522.uid.uidByte[3];
+
+    Serial.println();
+    Serial.println("UID Unsigned int");
+    Serial.println(UID_unsigned);
+
+    String UID =  (String)UID_unsigned;
+    long UID_LONG=(long)UID_unsigned;
+
+    Serial.println("UID Long :");
+    Serial.println(UID_LONG);
+
+    Serial.println("UID String :");
+    Serial.println(UID);
+
+	String event = "iotecosystems.2018.techdemo.rfid";
+	//Particle.publish( "iotecosystems.2018.techdemo.rfid", UID_string ); 
+	//This cupdatabase function recognizes only the Green cups
+	//First scan for registered customers. Notify with yellow LED if they are registered customer  
+	SignalCustomer(); 
+	//Next, scan for Green cups. Notify with Green LED if the cups are registered   
+	Cupdatabase();
+	//Notify with RED LED if the cups are not registered. 
+	CupNotOk();
+
+	delay( 1000 );
+}
+
+void SignalCustomer()
+{
+    unsigned long UID_unsigned;
+    UID_unsigned =  mfrc522.uid.uidByte[0] << 24;
+    UID_unsigned += mfrc522.uid.uidByte[1] << 16;
+    UID_unsigned += mfrc522.uid.uidByte[2] <<  8;
+    UID_unsigned += mfrc522.uid.uidByte[3]; 
+
+
+    String UID =  (String)UID_unsigned;
+    long UID_LONG=(long)UID_unsigned;
+    
+    Serial.println("UID String :");
+    Serial.println(UID);
+
+    if(UID == "3652313131")
+	{
+	//LED blink to indicate that the customer has an active subscription with the coffee shop    
+    digitalWrite(Notifyblink, HIGH);
+    //This circuit takes 2 seconds to complete 
+    delay(2000);
+    Particle.publish( "UID", UID);
+    digitalWrite(Notifyblink, LOW); 
+	}
+	else if(UID == "392937030")  
+	{
+	//LED blink to indicate that the customer has an active subscription with the coffee shop   
+    digitalWrite(Notifyblink, HIGH);
+    //This circuit takes 2 seconds to complete 
+    delay(2000);
+    Particle.publish( "UID", UID);
+    digitalWrite(Notifyblink, LOW); 
+	}
+}
+
+
+void Cupdatabase()
+{ 
+    unsigned long UID_unsigned;
+    UID_unsigned =  mfrc522.uid.uidByte[0] << 24;
+    UID_unsigned += mfrc522.uid.uidByte[1] << 16;
+    UID_unsigned += mfrc522.uid.uidByte[2] <<  8;
+    UID_unsigned += mfrc522.uid.uidByte[3]; 
+
+   // Serial.println();
+   // Serial.println("UID Unsigned int");
+   // Serial.println(UID_unsigned);
+    
+    String UID =  (String)UID_unsigned;
+    long UID_LONG=(long)UID_unsigned;
+    
+    //Serial.println("UID Long :");
+    //Serial.println(UID_LONG);
+    
+    Serial.println("UID String :");
+    Serial.println(UID);
+
+    if(UID == "2934069177")
+	{
+	//LED blink to indicate that the cup is scanned before buying   
+    digitalWrite(Greenblink, HIGH);
+    //This circuit takes 2 seconds to complete 
+    delay(2000);
+    Particle.publish( "UID", UID); 
+    digitalWrite(Greenblink, LOW); 
+	}
+	else if(UID == "3471464377")  
+	{
+	//LED blink to indicate that the cup is scanned before buying   
+    digitalWrite(Greenblink, HIGH);
+    //This circuit takes 2 seconds to complete 
+    delay(2000);
+    Particle.publish( "UID", UID);
+    digitalWrite(Greenblink, LOW); 
+	}
+	else if(UID == "2935117753")  
+	{
+	//LED blink to indicate that the cup is scanned before buying   
+    digitalWrite(Greenblink, HIGH);
+    //This circuit takes 2 seconds to complete 
+    delay(2000);
+    Particle.publish( "UID", UID);
+    digitalWrite(Greenblink, LOW); 
+	}
+	else if(UID == "3203028921")  
+	{
+	//LED blink to indicate that the cup is scanned before buying   
+    digitalWrite(Greenblink, HIGH);
+    //This circuit takes 2 seconds to complete 
+    delay(2000);
+    Particle.publish( "UID", UID);
+    digitalWrite(Greenblink, LOW); 
+	}
+	else if(UID == "2398377913")  
+	{
+	//LED blink to indicate that the cup is scanned before buying   
+    digitalWrite(Greenblink, HIGH);
+    //This circuit takes 2 seconds to complete 
+    delay(2000);
+    Particle.publish( "UID", UID);
+    digitalWrite(Greenblink, LOW); 
+	}
+	else if(UID == "2666420153")  
+	{
+	//LED blink to indicate that the cup is scanned before buying   
+    digitalWrite(Greenblink, HIGH);
+    //This circuit takes 2 seconds to complete 
+    delay(2000);
+    Particle.publish( "UID", UID);
+    digitalWrite(Greenblink, LOW); 
+	}
+	else if(UID == "2130073529")  
+	{
+	//LED blink to indicate that the cup is scanned before buying   
+    digitalWrite(Greenblink, HIGH);
+    //This circuit takes 2 seconds to complete 
+    delay(2000);
+    Particle.publish( "UID", UID);
+    digitalWrite(Greenblink, LOW); 
+	}
+}
+
+void CupNotOk()
+{  
+  unsigned long UID_unsigned;
+   UID_unsigned =  mfrc522.uid.uidByte[0] << 24;
+   UID_unsigned += mfrc522.uid.uidByte[1] << 16;
+   UID_unsigned += mfrc522.uid.uidByte[2] <<  8;
+   UID_unsigned += mfrc522.uid.uidByte[3]; 
+
+
+   String UID =  (String)UID_unsigned;
+   long UID_LONG=(long)UID_unsigned;
+    
+   Serial.println("UID String :");
+   Serial.println(UID);
+ 
+   if(UID == "2934069177")
+   {
+   millis();   //calling millis function as a dummy here
+   }
+   else if(UID == "2935117753")
+   {
+   millis();   
+   }
+   else if(UID == "3471464377")
+   {
+   millis();   
+   }
+   else if(UID == "3652313131")
+   {
+   millis();   
+   }
+   else if(UID == "392937030")
+   {
+   millis();   
+   }
+   else if(UID == "3203028921")
+   {
+   millis();   
+   }
+   else if(UID == "2398377913")
+   {
+   millis();   
+   }
+   else if(UID == "2666420153")
+   {
+   millis();   
+   }
+   else if(UID == "2130073529")
+   {
+   millis();   
+   }
+   else
+   {
+   digitalWrite(NOTGreenblink, HIGH); //The Red LED blinks now 
+   //This circuit takes 2 seconds to complete 
+   delay(2000);
+   digitalWrite(NOTGreenblink, LOW);
+   }
+}
+
+#Part 2
+
+//Code_and_project_Brief 
+
+//The below code is written for Customer card to return the coffee cups. 
+//The code continuously scans for a presence of a new coffee cup which are tagged with UHF RFID tags. 
+//The customer will be notified by a Green LED once they return their Cups at the drop-off kiosk.   
+
+//https://community.particle.io/t/sparkfun-simultaneous-rfid-tag-reader-setup-library/52647
+//https://github.com/sparkfun/SparkFun_Simultaneous_RFID_Tag_Reader_Library
+ 
+//Date: Feb 28, 2020 by Rahul vignesh Sekar 
+
+//Code Credits
+/*
+  Reading multiple RFID tags, simultaneously!
+  By: Nathan Seidle @ SparkFun Electronics
+  Date: October 3rd, 2016
+  https://github.com/sparkfun/Simultaneous_RFID_Tag_Reader
+
+  Single shot read - Ask the reader to tell us what tags it currently sees. And it beeps!
+
+  If using the Simultaneous RFID Tag Reader (SRTR) shield, make sure the serial slide
+  switch is in the 'SW-UART' position.
+*/
+
+// This #include statement was automatically added by the Particle IDE.
+#include "SparkFun_UHF_RFID_Reader.h"
+
+//SoftwareSerial softSerial(RX, TX); //RX, TX
+
+RFID nano; //Create instance
+
+#define BUZZER1 9
+//#define BUZZER1 0 //For testing quietly
+#define BUZZER2 10
+
+int Greenblink = D3; 
+
+void setup()
+{
+  Serial.begin(115200);
+
+  pinMode( Greenblink, OUTPUT );
+
+  pinMode(BUZZER1, OUTPUT);
+  pinMode(BUZZER2, OUTPUT);
+
+  digitalWrite(BUZZER2, LOW); //Pull half the buzzer to ground and drive the other half.
+
+  while (!Serial);
+  Serial.println();
+  Serial.println("Initializing...");
+
+  if (setupNano(115200) == false) //Configure nano to run at 38400bps
+  {
+    Serial.println("Module failed to respond. Please check wiring.");
+    while (1); //Freeze!
+  }
+
+  nano.setRegion(REGION_NORTHAMERICA); //Set to North America
+
+  nano.setReadPower(500); //5.00 dBm. Higher values may cause USB port to brown out
+  //Max Read TX Power is 27.00 dBm and may cause temperature-limit throttling
+  
+  nano.startReading(); //Begin scanning for tags
+  Particle.publish(  "Start reading" );
+
+}
+
+void loop(){
+  if (nano.check() == true) //Check to see if any new data has come in from module
+  {
+    byte responseType = nano.parseResponse(); //Break response into tag ID, RSSI, frequency, and timestamp
+
+    if (responseType == RESPONSE_IS_KEEPALIVE)
+    {
+      Serial.println(F("Scanning"));
+    }
+    else if (responseType == RESPONSE_IS_TAGFOUND)
+    {
+      //If we have a full record we can pull out the fun bits
+      int rssi = nano.getTagRSSI(); //Get the RSSI for this tag read
+
+      long freq = nano.getTagFreq(); //Get the frequency this tag was detected at
+
+      long timeStamp = nano.getTagTimestamp(); //Get the time this was read, (ms) since last keep-alive message
+
+      byte tagEPCBytes = nano.getTagEPCBytes(); //Get the number of bytes of EPC from response
+
+      Serial.print(F(" rssi["));
+      Serial.print(rssi);
+      Serial.print(F("]"));
+
+      Serial.print(F(" freq["));
+      Serial.print(freq);
+      Serial.print(F("]"));
+
+      Serial.print(F(" time["));
+      Serial.print(timeStamp);
+      Serial.print(F("]"));
+
+      //Print EPC bytes, this is a subsection of bytes from the response/msg array
+      Serial.print(F(" epc["));
+      
+      String rfidUUID = "";
+      
+      for (byte x = 0 ; x < tagEPCBytes ; x++)
+      {
+        if (nano.msg[31 + x] < 0x10) Serial.print(F("0")); //Pretty print
+        Serial.print(nano.msg[31 + x], HEX);
+        Serial.print(F(" "));
+        
+        rfidUUID = rfidUUID + String( nano.msg[31 + x], HEX ) + ":";
+        
+      }
+      
+      Particle.publish(  "newtagfound", rfidUUID );
+      Serial.print(F("]"));
+      Signaluser();
+
+      Serial.println();
+    }
+    else if (responseType == ERROR_CORRUPT_RESPONSE)
+    {
+      Serial.println("Bad CRC");
+    }
+    else
+    {
+      //Unknown response
+      Serial.print("Unknown error");
+    }
+  }
+  
+  Serial.println( "Scan Cycle Complete. Sleeping for 5s" );
+  delay( 5000 );
+}
+
+//Gracefully handles a reader that is already configured and already reading continuously
+//Because Stream does not have a .begin() we have to do this outside the library
+boolean setupNano(long baudRate)
+{
+  nano.enableDebugging(Serial); //Print the debug statements to the Serial port
+    
+  nano.begin(Serial1); //Tell the library to communicate over software serial port
+
+  //Test to see if we are already connected to a module
+  //This would be the case if the Arduino has been reprogrammed and the module has stayed powered
+  Serial1.begin(baudRate); //For this test, assume module is already at our desired baud rate
+  while(!Serial1); //Wait for port to open
+
+  //About 200ms from power on the module will send its firmware version at 115200. We need to ignore this.
+  while(Serial1.available()) Serial1.read();
+  
+  nano.getVersion();
+
+  if (nano.msg[0] == ERROR_WRONG_OPCODE_RESPONSE)
+  {
+    //This happens if the baud rate is correct but the module is doing a ccontinuous read
+    nano.stopReading();
+
+    Serial.println(F("Module continuously reading. Asking it to stop..."));
+
+    delay(1500);
+  }
+  else
+  {
+    //The module did not respond so assume it's just been powered on and communicating at 115200bps
+    Serial1.begin(115200); //Start software serial at 115200
+
+    nano.setBaud(baudRate); //Tell the module to go to the chosen baud rate. Ignore the response msg
+
+    Serial1.begin(baudRate); //Start the software serial port, this time at user's chosen baud rate
+  }
+
+  //Test the connection
+  nano.getVersion();
+  if (nano.msg[0] != ALL_GOOD) return (false); //Something is not right
+
+  //The M6E has these settings no matter what
+  nano.setTagProtocol(); //Set protocol to GEN2
+
+  nano.setAntennaPort(); //Set TX/RX antenna ports to 1
+
+  return (true); //We are ready to rock
+}
+void Signaluser()
+{
+    digitalWrite(Greenblink, HIGH);
+    //This circuit takes 2 seconds to complete 
+    delay(2000);
+    digitalWrite(Greenblink, LOW); 
+}
+
